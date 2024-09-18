@@ -105,11 +105,25 @@ result = minimize(
     options={'xatol': 1e-10, 'fatol': 1e-10, 'maxiter': 10000}
 )
 
-# Estimated aircraft position in decimal degrees
-estimated_aircraft_position = result.x
+# Check if the optimization was successful
+if result.success:
+    estimated_aircraft_position = result.x
+    print("\nOptimization successful.")
+    print(f"Estimated Aircraft Position (Decimal Degrees): {estimated_aircraft_position}")
+else:
+    print("\nOptimization failed. Check your inputs or initial guess.")
+    estimated_aircraft_position = (None, None)
 
-# Convert estimated position to DMS format for output
-estimated_lat_dms, estimated_lon_dms = decimal_to_dms(estimated_aircraft_position[0], estimated_aircraft_position[1])
+# Check if we have valid aircraft position and print it
+if estimated_aircraft_position is not None and np.all(estimated_aircraft_position):
+    # Convert estimated position to DMS format for output
+    estimated_lat_dms, estimated_lon_dms = decimal_to_dms(estimated_aircraft_position[0], estimated_aircraft_position[1])
+
+    # Output the result in Decimal Degrees and DMS
+    print(f"\nEstimated Aircraft Position in Decimal Degrees: {estimated_aircraft_position[0]:.6f}, {estimated_aircraft_position[1]:.6f}")
+    print(f"Estimated Aircraft Position in DMS: {estimated_lat_dms}, {estimated_lon_dms}")
+else:
+    print("\nNo valid aircraft position found.")
 
 # Plotting the ADS-B towers and estimated aircraft position
 plt.figure(figsize=(10, 8))
@@ -118,15 +132,17 @@ plt.figure(figsize=(10, 8))
 adsb_lats, adsb_lons = zip(*adsb_towers)
 plt.scatter(adsb_lons, adsb_lats, color='red', label='ADS-B Towers', marker='^', s=100)
 
-# Plot the estimated aircraft location
-plt.scatter(estimated_aircraft_position[1], estimated_aircraft_position[0], color='blue', label='Estimated Aircraft', marker='o', s=100)
+# Plot the estimated aircraft location if available
+if estimated_aircraft_position is not None and np.all(estimated_aircraft_position):
+    plt.scatter(estimated_aircraft_position[1], estimated_aircraft_position[0], color='blue', label='Estimated Aircraft', marker='o', s=100)
 
 # Add labels to each ADS-B tower
 for i, (lat, lon) in enumerate(adsb_towers, start=1):
     plt.text(lon, lat, f'ADS-B {i}', fontsize=12, ha='right')
 
 # Add label for the aircraft
-plt.text(estimated_aircraft_position[1], estimated_aircraft_position[0], 'Aircraft', fontsize=12, ha='left')
+if estimated_aircraft_position is not None and np.all(estimated_aircraft_position):
+    plt.text(estimated_aircraft_position[1], estimated_aircraft_position[0], 'Aircraft', fontsize=12, ha='left')
 
 # Set plot title and labels
 plt.title('Aircraft Position Estimation Using Multilateration')
@@ -140,14 +156,8 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-# Output the result
+# Output the result in a readable format
 print("\n### Result Summary ###")
 for i, (lat, lon) in enumerate(adsb_towers):
     lat_dms, lon_dms = decimal_to_dms(lat, lon)
     print(f"ADS-B {i+1} - {lat_dms} {lon_dms}    TIME: {reception_times[i]:.9f} s")
-
-# Print estimated aircraft position in Decimal Degrees
-print(f"\nEstimated Aircraft Position in Decimal Degrees: {estimated_aircraft_position[0]:.6f}, {estimated_aircraft_position[1]:.6f}")
-
-# Print estimated aircraft position in DMS
-print(f"Estimated Aircraft Position in DMS: {estimated_lat_dms}, {estimated_lon_dms}")
