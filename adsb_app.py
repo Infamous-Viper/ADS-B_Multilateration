@@ -6,7 +6,6 @@ import dash_leaflet as dl
 import dash_bootstrap_components as dbc
 import pandas as pd
 from scipy.optimize import minimize
-import os
 
 # Speed of light in meters per second
 speed_of_light = 3e8
@@ -28,7 +27,7 @@ def multilateration(adsb_towers, reception_times):
             dist = haversine(estimated_position[0], estimated_position[1], lat, lon)
             estimated_time_of_arrival = dist / speed_of_light
             errors.append((t - estimated_time_of_arrival)**2)
-        return np.sum(errors)
+        return np.sum(errors)  # Corrected indentation
 
     # Initial guess: centroid of ADS-B towers
     initial_guess = np.mean(adsb_towers, axis=0)
@@ -74,43 +73,70 @@ def read_data_from_csv(file_path='adsb_data.csv'):
         return []
 
 def main():
-    # Initialize Dash app with Bootstrap theme
-    app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+    # Initialize Dash app with a Bootstrap theme
+    app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
     server = app.server  # For deploying to platforms like Heroku
 
     # Define the layout
     app.layout = dbc.Container([
-        html.H1("ADS-B Aircraft Position Estimation", className='text-center mt-4 mb-4'),
+        # Header with a Navbar component
+        dbc.Navbar(
+            dbc.Container([
+                dbc.NavbarBrand("ADS-B Aircraft Position Estimation", className='mx-auto', style={
+                    'color': 'black',
+                    'fontSize': '24px',
+                    'fontWeight': 'bold',
+                    'textAlign': 'center',
+                    'width': '100%',
+                }),
+            ]),
+            color=None,  # No predefined color to allow custom background color
+            dark=False,
+            style={'backgroundColor': '#B0E0E6'},  # Powder blue background
+            className='mb-4',
+        ),
         dbc.Row([
             # Sidebar
             dbc.Col([
-                html.H5("Select Aircraft", className='text-center'),
-                dbc.Checklist(
-                    id='aircraft-checklist',
-                    options=[],  # Options will be populated dynamically
-                    value=[],    # Default selected values
-                    style={'height': '70vh', 'overflowY': 'auto'},
-                    switch=True,
-                ),
-            ], width=3, className='bg-light border-right'),
-
+                dbc.Card([
+                    dbc.CardHeader(html.H5("Select Aircraft", className='text-center'),
+                                   style={'backgroundColor': '#B0E0E6'}),
+                    dbc.CardBody([
+                        dbc.Checklist(
+                            id='aircraft-checklist',
+                            options=[],  # Options will be populated dynamically
+                            value=[],    # Default selected values
+                            style={'height': '70vh', 'overflowY': 'auto'},
+                            switch=True,
+                        ),
+                    ]),
+                ], className='mb-4 shadow', style={'borderColor': '#B0E0E6'}),
+            ], width=3),
             # Main content
             dbc.Col([
                 # Map
-                dl.Map(center=(adsb_towers[:, 0].mean(), adsb_towers[:, 1].mean()), zoom=13, children=[
-                    dl.TileLayer(url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
-                    dl.LayerGroup(id="layer"),
-                ], style={'width': '100%', 'height': '60vh', 'margin': "auto"}),
-
+                dbc.Card([
+                    dbc.CardHeader(html.H5("Aircraft Map", className='text-center'),
+                                   style={'backgroundColor': '#B0E0E6'}),
+                    dbc.CardBody([
+                        dl.Map(center=(adsb_towers[:, 0].mean(), adsb_towers[:, 1].mean()), zoom=13, children=[
+                            dl.TileLayer(url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                            dl.LayerGroup(id="layer"),
+                        ], style={'width': '100%', 'height': '55vh', 'margin': "auto"}),
+                    ]),
+                ], className='mb-4 shadow', style={'borderColor': '#B0E0E6'}),
                 # Aircraft Details
-                html.Div([
-                    html.H5("Aircraft Details", className='mt-4'),
-                    html.Div(id='aircraft-details', style={
-                        'maxHeight': '20vh',
-                        'overflowY': 'auto',
-                        'padding': '10px',
-                    }),
-                ]),
+                dbc.Card([
+                    dbc.CardHeader(html.H5("Aircraft Details", className='text-center'),
+                                   style={'backgroundColor': '#B0E0E6'}),
+                    dbc.CardBody([
+                        html.Div(id='aircraft-details', style={
+                            'maxHeight': '25vh',
+                            'overflowY': 'auto',
+                            'padding': '10px',
+                        }),
+                    ]),
+                ], className='shadow', style={'borderColor': '#B0E0E6'}),
             ], width=9),
         ]),
         # Interval for updates
@@ -193,26 +219,41 @@ def main():
                     dbc.Card([
                         dbc.CardBody([
                             html.H5(f"Aircraft ID: {aircraft_id}", className="card-title"),
-                            html.P(f"Latitude: {lat:.6f}", className="card-text"),
-                            html.P(f"Longitude: {lon:.6f}", className="card-text"),
-                            html.P(f"Heading: {heading}°", className="card-text"),
-                            html.P(f"Ground Speed: {ground_speed} knots", className="card-text"),
+                            html.Hr(),
+                            html.P([
+                                html.Strong("Latitude: "),
+                                f"{lat:.6f}"
+                            ], className="card-text"),
+                            html.P([
+                                html.Strong("Longitude: "),
+                                f"{lon:.6f}"
+                            ], className="card-text"),
+                            html.P([
+                                html.Strong("Heading: "),
+                                f"{heading}°"
+                            ], className="card-text"),
+                            html.P([
+                                html.Strong("Ground Speed: "),
+                                f"{ground_speed} knots"
+                            ], className="card-text"),
                         ])
-                    ])
+                    ], style={'width': '200px', 'backgroundColor': '#E3F2FD'})  # Light blue background
                 ])
 
                 aircraft_markers.append(
                     dl.Marker(
                         position=(lat, lon),
                         children=[
-                            dl.Tooltip(f"Aircraft {aircraft_id}"),
+                            dl.Tooltip(html.Div([
+                                html.Strong(f"Aircraft {aircraft_id}")
+                            ], style={'color': 'black'})),
                             dl.Popup(popup_content)
                         ],
                         icon={
                             "iconUrl": "/assets/icons/aircraft.png",  # Path to local aircraft icon
-                            "iconSize": [30, 30],
-                            "iconAnchor": [15, 30],
-                            "popupAnchor": [0, -30],
+                            "iconSize": [40, 40],
+                            "iconAnchor": [20, 40],
+                            "popupAnchor": [0, -40],
                         }
                     )
                 )
@@ -221,10 +262,18 @@ def main():
                     dbc.Card(
                         dbc.CardBody([
                             html.H5(f"Aircraft ID: {aircraft_id}", className="card-title"),
-                            html.P(f"Heading: {heading}°", className="card-text"),
-                            html.P(f"Ground Speed: {ground_speed} knots", className="card-text"),
+                            html.Hr(),
+                            html.P([
+                                html.Strong("Heading: "),
+                                f"{heading}°"
+                            ], className="card-text"),
+                            html.P([
+                                html.Strong("Ground Speed: "),
+                                f"{ground_speed} knots"
+                            ], className="card-text"),
                         ]),
-                        className='mb-3 shadow-sm'
+                        className='mb-3 shadow-sm',
+                        style={'backgroundColor': '#E3F2FD'}  # Light blue background
                     )
                 )
 
